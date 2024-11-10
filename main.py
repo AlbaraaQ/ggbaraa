@@ -2,8 +2,8 @@ from huggingface_hub import login
 import videogen_hub
 import torch
 import torchvision.io as io
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram import Update, ForceReply
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 # تسجيل الدخول باستخدام Token الخاص بك
 login(token="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")
@@ -19,33 +19,31 @@ def generate_video(prompt: str) -> str:
     return output_filename
 
 # وظيفة لإرسال رسالة ترحيب عند استخدام أمر /start
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text(
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
         "مرحبًا بك في بوت توليد الفيديوهات! أرسل لي وصفًا نصيًا وسأقوم بإنشاء فيديو لك 🎥."
     )
 
 # وظيفة التعامل مع الرسائل من تيليجرام
-def handle_message(update: Update, context: CallbackContext):
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_prompt = update.message.text
-    update.message.reply_text("جاري إنشاء الفيديو، يرجى الانتظار...")
+    await update.message.reply_text("جاري إنشاء الفيديو، يرجى الانتظار...")
     try:
         video_path = generate_video(user_prompt)
         with open(video_path, 'rb') as video_file:
-            update.message.reply_video(video=video_file)
+            await update.message.reply_video(video=video_file)
     except Exception as e:
-        update.message.reply_text(f"حدث خطأ أثناء توليد الفيديو: {e}")
+        await update.message.reply_text(f"حدث خطأ أثناء توليد الفيديو: {e}")
 
 # إعداد البوت
 def main():
     TELEGRAM_TOKEN = '7865424971:AAF_Oe6lu8ZYAl5XIF1M6qU_8MK6GHWEll8'  # ضع التوكن الخاص بالبوت هنا
-    updater = Updater(TELEGRAM_TOKEN)
-    dp = updater.dispatcher
+    application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    updater.start_polling()
-    updater.idle()
+    application.run_polling()
 
 if __name__ == '__main__':
     main()
