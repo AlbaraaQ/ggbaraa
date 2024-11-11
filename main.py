@@ -1,6 +1,6 @@
 import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, Context
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from huggingface_hub import login
 import videogen_hub
 import torch
