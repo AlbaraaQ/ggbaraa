@@ -2,6 +2,7 @@ deepspeed; platform_system != "Windows"
 videogen_hub
 telegram
 python-telegram-bot
+python-dotenv
 bitsandbytes
 flask
 flask_restful
