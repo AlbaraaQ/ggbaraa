@@ -5,7 +5,7 @@ import requests
 import base64
 from io import BytesIO
 from PIL import Image
-import videogen_hub  # استيراد مكتبة توليد الفيديو
+import videogen_hub  # استيراد مكتبة توليد الفيديو عند الحاجة
 import torchvision.io as io  # مكتبة حفظ الفيديو
 
 # إعداد تسجيل الأخطاء والمعلومات
@@ -15,11 +15,9 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 HUGGING_FACE_API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large-turbo"
 HUGGING_FACE_HEADERS = {"Authorization": "Bearer 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"}
 
-# تحميل النموذج الجديد للفيديو
-videogen_model = videogen_hub.load('VideoCrafter2')
-
 # متغير لتحديد النموذج الذي اختاره المستخدم
 user_selected_model = {}
+videogen_model = None  # سيحمل فقط عند الحاجة
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
@@ -32,14 +30,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("اختر النموذج الذي ترغب باستخدامه:", reply_markup=reply_markup)
 
 async def set_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global videogen_model
     query = update.callback_query
     user_id = query.from_user.id
     selected_model = query.data
     user_selected_model[user_id] = selected_model
+
+    if selected_model == "videogen" and videogen_model is None:
+        await query.edit_message_text(text="جاري تحميل نموذج VideoCrafter2... الرجاء الانتظار.")
+        try:
+            videogen_model = videogen_hub.load('VideoCrafter2')
+            await query.edit_message_text(text="تم تحميل نموذج VideoCrafter2 بنجاح.")
+        except Exception as e:
+            await query.edit_message_text(text=f"حدث خطأ أثناء تحميل نموذج VideoCrafter2: {e}")
+            return
+
     await query.answer()
     await query.edit_message_text(text=f"تم اختيار النموذج: {selected_model}")
 
 async def generate_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global videogen_model
     user_id = update.message.from_user.id
     user_prompt = update.message.text
 
@@ -63,6 +73,10 @@ async def generate_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"حدث خطأ أثناء توليد الصورة باستخدام Hugging Face: {e}")
 
     elif model == "videogen":
+        if videogen_model is None:
+            await update.message.reply_text("عذرًا، لم يتم تحميل نموذج VideoCrafter2 بشكل صحيح.")
+            return
+
         await update.message.reply_text("جاري إنشاء الفيديو باستخدام نموذج VideoCrafter2... قد يستغرق ذلك بعض الوقت.")
         try:
             video = videogen_model.infer_one_video(prompt=user_prompt)
