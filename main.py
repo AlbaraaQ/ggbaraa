@@ -1,17 +1,26 @@
 import logging
+import os
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from huggingface_hub import login
 import videogen_hub
 import torch
 import torchvision.io as io
-import os
+from dotenv import load_dotenv
+
+# تحميل متغيرات البيئة من ملف .env
+load_dotenv()
 
 # إعداد تسجيل الأخطاء والمعلومات
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 # تسجيل الدخول باستخدام Token الخاص بك (من متغيرات البيئة)
-login(token=os.getenv("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"))  # تأكد من أنك قمت بتعيين هذا المتغير في بيئتك
+HF_TOKEN = os.getenv("HF_TOKEN")
+if not HF_TOKEN:
+    logging.error("HF_TOKEN is not set. Please set the token in your environment.")
+    raise EnvironmentError("HF_TOKEN is not set. Check your .env file.")
+
+login(token=HF_TOKEN)
 
 # تحميل النموذج
 try:
@@ -34,14 +43,14 @@ def generate_video(prompt: str) -> str:
         raise
 
 # وظيفة لإرسال رسالة ترحيب عند استخدام أمر /start
-async def start(update: Update, context: Context):
+async def start(update: Update, context: CallbackContext):
     logging.info("Received /start command")
     await update.message.reply_text(
         "مرحبًا بك في بوت توليد الفيديوهات! أرسل لي وصفًا نصيًا وسأقوم بإنشاء فيديو لك 🎥."
     )
 
 # وظيفة التعامل مع الرسائل من تيليجرام
-async def handle_message(update: Update, context: Context):
+async def handle_message(update: Update, context: CallbackContext):
     user_prompt = update.message.text
     logging.info(f"Received message: {user_prompt}")
     await update.message.reply_text("جاري إنشاء الفيديو، يرجى الانتظار...")
@@ -60,7 +69,7 @@ async def handle_message(update: Update, context: Context):
 # إعداد البوت
 def main():
     # استخدام متغير بيئة للحصول على توكن البوت
-    TELEGRAM_TOKEN = os.getenv("7865424971:AAF_Oe6lu8ZYAl5XIF1M6qU_8MK6GHWEll8")  # تأكد من تعيين هذا المتغير في بيئتك
+    TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
     if not TELEGRAM_TOKEN:
         logging.error("TELEGRAM_TOKEN is not set. Please set the token in your environment.")
         return
